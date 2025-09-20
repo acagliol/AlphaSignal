@@ -192,3 +192,5 @@ rm backend/pe_dashboard.db
 ## 📄 License
 
 This project is for demonstration purposes. Please ensure you comply with Alpha Vantage's terms of service when using their API.
+# Cagliolo-Ventures
+A Private Equity Dashboard

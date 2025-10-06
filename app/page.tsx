@@ -36,7 +36,12 @@ export default function Dashboard() {
       }
     }
 
-    fetchPortfolioData()
+    // Small delay to prevent flash
+    const timer = setTimeout(() => {
+      fetchPortfolioData()
+    }, 100)
+
+    return () => clearTimeout(timer)
   }, [refreshKey])
 
   const handleDataIngested = () => {
@@ -51,6 +56,22 @@ export default function Dashboard() {
   }
 
   const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || PortfolioTab
+
+  if (loading && !portfolioData) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        backgroundColor: "#0a0a0a",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#00ff9d",
+        fontSize: "1.25rem"
+      }}>
+        Loading Dashboard...
+      </div>
+    )
+  }
 
   const styles = {
     container: {
@@ -130,7 +151,6 @@ export default function Dashboard() {
     },
     tab: {
       padding: "1rem 0.5rem",
-      borderBottom: "2px solid transparent",
       fontWeight: "500",
       fontSize: "0.875rem",
       backgroundColor: "transparent",
@@ -139,7 +159,7 @@ export default function Dashboard() {
       transition: "all 0.2s",
     },
     activeTab: {
-      borderBottomColor: "#00ff9d",
+      borderBottom: "2px solid #00ff9d",
       color: "#00ff9d",
     },
     inactiveTab: {

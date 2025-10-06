@@ -11,6 +11,7 @@ export default function DealsTab({ refreshKey = 0 }: DealsTabProps) {
   const [deals, setDeals] = useState<Deal[]>([])
   const [dealKPIs, setDealKPIs] = useState<Map<number, DealKPIs>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [hoveredDealId, setHoveredDealId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -206,7 +207,7 @@ export default function DealsTab({ refreshKey = 0 }: DealsTabProps) {
       <div style={styles.dealsGrid}>
         {deals.map((deal) => {
           const kpis = dealKPIs.get(deal.id)
-          const [isHovered, setIsHovered] = useState(false)
+          const isHovered = hoveredDealId === deal.id
 
           const returnPct = kpis
             ? ((kpis.current_value - kpis.invest_amount) / kpis.invest_amount) * 100
@@ -219,8 +220,8 @@ export default function DealsTab({ refreshKey = 0 }: DealsTabProps) {
                 ...styles.dealCard,
                 ...(isHovered ? styles.dealCardHover : {}),
               }}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
+              onMouseEnter={() => setHoveredDealId(deal.id)}
+              onMouseLeave={() => setHoveredDealId(null)}
             >
               <div style={styles.dealHeader}>
                 <div style={styles.companyInfo}>

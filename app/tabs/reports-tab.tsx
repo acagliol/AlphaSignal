@@ -1,240 +1,197 @@
 "use client"
 
-const reports = [
-  {
-    title: "Quarterly Performance Report",
-    description: "Comprehensive analysis of fund performance for Q4 2023",
-    date: "2024-01-15",
-    type: "Performance",
-    status: "Published",
-  },
-  {
-    title: "Portfolio Company Update",
-    description: "Detailed updates on all active portfolio companies",
-    date: "2024-01-10",
-    type: "Portfolio",
-    status: "Published",
-  },
-  {
-    title: "Market Analysis & Outlook",
-    description: "Industry trends and market outlook for 2024",
-    date: "2024-01-08",
-    type: "Market",
-    status: "Published",
-  },
-  {
-    title: "ESG Impact Assessment",
-    description: "Environmental, social, and governance impact metrics",
-    date: "2024-01-05",
-    type: "ESG",
-    status: "Draft",
-  },
-  {
-    title: "Risk Management Review",
-    description: "Annual risk assessment and mitigation strategies",
-    date: "2023-12-20",
-    type: "Risk",
-    status: "Published",
-  },
-]
+import { useState, useEffect } from "react"
+import { api, Report } from "../lib/api"
 
-const upcomingReports = [
-  {
-    title: "Annual Investor Letter",
-    dueDate: "2024-02-01",
-    assignee: "Investment Team",
-    priority: "High",
-  },
-  {
-    title: "Fund III Performance Update",
-    dueDate: "2024-01-25",
-    assignee: "Portfolio Management",
-    priority: "Medium",
-  },
-  {
-    title: "Deal Pipeline Summary",
-    dueDate: "2024-01-30",
-    assignee: "Business Development",
-    priority: "Medium",
-  },
-]
-
-function ReportCard({
-  title,
-  description,
-  date,
-  type,
-  status,
-}: {
-  title: string
-  description: string
-  date: string
-  type: string
-  status: string
-}) {
-  const statusColor =
-    status === "Published" ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
-  const typeColor =
-    type === "Performance"
-      ? "text-primary"
-      : type === "Portfolio"
-        ? "text-secondary"
-        : type === "Market"
-          ? "text-accent"
-          : type === "ESG"
-            ? "text-chart-4"
-            : "text-destructive"
-
-  return (
-    <div className="bg-card rounded-lg border border-border p-6">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h4 className="font-semibold text-card-foreground mb-1">{title}</h4>
-          <p className="text-sm text-muted-foreground mb-2">{description}</p>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="text-muted-foreground">{date}</span>
-            <span className={`font-medium ${typeColor}`}>{type}</span>
-          </div>
-        </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>{status}</span>
-      </div>
-      <div className="flex gap-2">
-        <button className="px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90 transition-colors">
-          View
-        </button>
-        <button className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded hover:bg-muted/80 transition-colors">
-          Download
-        </button>
-      </div>
-    </div>
-  )
+interface ReportsTabProps {
+  refreshKey?: number
 }
 
-function UpcomingReportRow({
-  title,
-  dueDate,
-  assignee,
-  priority,
-}: {
-  title: string
-  dueDate: string
-  assignee: string
-  priority: string
-}) {
-  const priorityColor =
-    priority === "High" ? "text-destructive" : priority === "Medium" ? "text-accent" : "text-muted-foreground"
+export default function ReportsTab({ refreshKey = 0 }: ReportsTabProps) {
+  const [reports, setReports] = useState<Report[]>([])
+  const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true)
+        const data = await api.getRecentReports()
+        setReports(data)
+      } catch (error) {
+        console.error("Failed to fetch reports:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReports()
+  }, [refreshKey])
+
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: "1.5rem",
+    },
+    title: {
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+      color: "#00ff9d",
+      margin: 0,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+    },
+    reportCard: {
+      backgroundColor: "#0f0f0f",
+      borderRadius: "0.75rem",
+      border: "1px solid #1a1a1a",
+      padding: "1.5rem",
+      transition: "all 0.3s",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+    },
+    reportCardHover: {
+      borderColor: "#00ff9d",
+      boxShadow: "0 0 20px rgba(0, 255, 157, 0.2)",
+    },
+    reportHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "start",
+      marginBottom: "1rem",
+    },
+    reportTitle: {
+      fontSize: "1.25rem",
+      fontWeight: "bold",
+      color: "#fff",
+      margin: 0,
+    },
+    reportType: {
+      padding: "0.5rem 1rem",
+      borderRadius: "0.5rem",
+      fontSize: "0.75rem",
+      fontWeight: "600",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+      backgroundColor: "rgba(0, 255, 157, 0.1)",
+      border: "1px solid #00ff9d",
+      color: "#00ff9d",
+    },
+    reportDescription: {
+      fontSize: "0.875rem",
+      color: "#888",
+      marginBottom: "1rem",
+      lineHeight: "1.5",
+    },
+    reportMeta: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: "0.75rem",
+      color: "#666",
+      paddingTop: "1rem",
+      borderTop: "1px solid #1a1a1a",
+    },
+    loadingContainer: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "400px",
+      color: "#00ff9d",
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+    },
+    noDataContainer: {
+      textAlign: "center" as const,
+      padding: "3rem",
+      color: "#888",
+    },
+    noDataTitle: {
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+      color: "#00ff9d",
+      marginBottom: "1rem",
+    },
+    comingSoon: {
+      textAlign: "center" as const,
+      padding: "4rem 2rem",
+      backgroundColor: "#0f0f0f",
+      borderRadius: "0.75rem",
+      border: "1px solid #1a1a1a",
+    },
+    comingSoonIcon: {
+      fontSize: "4rem",
+      marginBottom: "1rem",
+    },
+    comingSoonTitle: {
+      fontSize: "2rem",
+      fontWeight: "bold",
+      color: "#00ff9d",
+      marginBottom: "1rem",
+    },
+    comingSoonText: {
+      fontSize: "1rem",
+      color: "#888",
+      maxWidth: "600px",
+      margin: "0 auto",
+      lineHeight: "1.6",
+    },
+  }
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        ⏳ Loading Reports...
+      </div>
+    )
+  }
+
+  // Show coming soon message for reports feature
   return (
-    <div className="grid grid-cols-4 gap-4 py-4 border-b border-border last:border-b-0">
-      <div>
-        <p className="font-medium text-card-foreground">{title}</p>
-      </div>
-      <div>
-        <p className="text-card-foreground">{dueDate}</p>
-      </div>
-      <div>
-        <p className="text-card-foreground">{assignee}</p>
-      </div>
-      <div>
-        <span className={`font-medium ${priorityColor}`}>{priority}</span>
-      </div>
-    </div>
-  )
-}
+    <div style={styles.container}>
+      <h2 style={styles.title}>📄 Reports & Analytics</h2>
 
-function QuickAction({
-  title,
-  description,
-  icon,
-}: {
-  title: string
-  description: string
-  icon: string
-}) {
-  return (
-    <button className="bg-card rounded-lg border border-border p-6 text-left hover:bg-muted/50 transition-colors">
-      <div className="text-2xl mb-3">{icon}</div>
-      <h4 className="font-semibold text-card-foreground mb-1">{title}</h4>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </button>
-  )
-}
-
-export default function ReportsTab() {
-  return (
-    <div className="space-y-6">
-      {/* Quick Actions */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <QuickAction title="Generate Report" description="Create a new custom report" icon="📊" />
-          <QuickAction title="Schedule Report" description="Set up automated reporting" icon="⏰" />
-          <QuickAction title="Export Data" description="Download portfolio data" icon="📥" />
-        </div>
+      <div style={styles.comingSoon}>
+        <div style={styles.comingSoonIcon}>📊</div>
+        <h3 style={styles.comingSoonTitle}>REPORT GENERATION COMING SOON</h3>
+        <p style={styles.comingSoonText}>
+          Automated report generation with PDF export, custom templates, and scheduled delivery
+          will be available in the next release. For now, you can view all metrics in the
+          Portfolio, Deals, Performance, and Analytics tabs.
+        </p>
       </div>
 
-      {/* Recent Reports */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4">Recent Reports</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {reports.map((report, index) => (
-            <ReportCard key={index} {...report} />
-          ))}
-        </div>
-      </div>
+      {reports.length > 0 && (
+        <>
+          <h3 style={{ ...styles.title, fontSize: "1.25rem", marginTop: "2rem" }}>Recent Reports</h3>
+          {reports.map((report, index) => {
+            const [isHovered, setIsHovered] = useState(false)
 
-      {/* Upcoming Reports */}
-      <div className="bg-card rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Upcoming Reports</h3>
-        <div className="space-y-0">
-          <div className="grid grid-cols-4 gap-4 py-3 border-b border-border font-medium text-muted-foreground text-sm">
-            <div>Report</div>
-            <div>Due Date</div>
-            <div>Assignee</div>
-            <div>Priority</div>
-          </div>
-          {upcomingReports.map((report, index) => (
-            <UpcomingReportRow key={index} {...report} />
-          ))}
-        </div>
-      </div>
-
-      {/* Report Templates */}
-      <div className="bg-card rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">Report Templates</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">Investor Update</h4>
-            <p className="text-sm text-muted-foreground mb-3">Quarterly performance and portfolio updates</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">Deal Summary</h4>
-            <p className="text-sm text-muted-foreground mb-3">Investment thesis and transaction details</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">Portfolio Review</h4>
-            <p className="text-sm text-muted-foreground mb-3">Company performance and value creation</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">Market Analysis</h4>
-            <p className="text-sm text-muted-foreground mb-3">Industry trends and competitive landscape</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">Risk Assessment</h4>
-            <p className="text-sm text-muted-foreground mb-3">Portfolio risk analysis and mitigation</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-          <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-            <h4 className="font-medium text-card-foreground mb-2">ESG Report</h4>
-            <p className="text-sm text-muted-foreground mb-3">Sustainability and impact metrics</p>
-            <button className="text-xs text-primary hover:underline">Use Template</button>
-          </div>
-        </div>
-      </div>
+            return (
+              <div
+                key={report.id || index}
+                style={{
+                  ...styles.reportCard,
+                  ...(isHovered ? styles.reportCardHover : {}),
+                }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                <div style={styles.reportHeader}>
+                  <h3 style={styles.reportTitle}>{report.title}</h3>
+                  <div style={styles.reportType}>{report.report_type}</div>
+                </div>
+                <p style={styles.reportDescription}>{report.description}</p>
+                <div style={styles.reportMeta}>
+                  <span>Generated: {new Date(report.generated_at).toLocaleDateString()}</span>
+                  <span style={{ color: "#00ff9d", textTransform: "uppercase", fontWeight: "600" }}>
+                    View Report →
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </>
+      )}
     </div>
   )
 }

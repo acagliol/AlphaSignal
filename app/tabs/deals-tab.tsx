@@ -1,331 +1,313 @@
 "use client"
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { useState, useEffect } from "react"
+import { api, Deal, DealKPIs } from "../lib/api"
 
-const dealPipelineData = [
-  { stage: "Sourcing", count: 45, value: 2800 },
-  { stage: "Initial Review", count: 18, value: 1200 },
-  { stage: "Due Diligence", count: 8, value: 650 },
-  { stage: "Final Review", count: 4, value: 320 },
-  { stage: "Closing", count: 2, value: 180 },
-]
-
-const recentDeals = [
-  {
-    company: "DataFlow Analytics",
-    sector: "Technology",
-    stage: "Due Diligence",
-    dealSize: "$95M",
-    probability: 75,
-    expectedClose: "2024-02-15",
-  },
-  {
-    company: "MedDevice Pro",
-    sector: "Healthcare",
-    stage: "Final Review",
-    dealSize: "$120M",
-    probability: 85,
-    expectedClose: "2024-01-30",
-  },
-  {
-    company: "RetailTech Solutions",
-    sector: "Consumer Goods",
-    stage: "Initial Review",
-    dealSize: "$65M",
-    probability: 45,
-    expectedClose: "2024-03-20",
-  },
-  {
-    company: "GreenEnergy Corp",
-    sector: "Energy",
-    stage: "Closing",
-    dealSize: "$150M",
-    probability: 95,
-    expectedClose: "2024-01-15",
-  },
-]
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "1.5rem",
-  },
-  card: {
-    backgroundColor: "#ecfeff",
-    borderRadius: "0.5rem",
-    border: "1px solid #d1d5db",
-    padding: "1.5rem",
-  },
-  cardTitle: {
-    fontSize: "1.125rem",
-    fontWeight: "600",
-    color: "#164e63",
-    marginBottom: "1.5rem",
-    margin: 0,
-  },
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: "1.5rem",
-    marginBottom: "1.5rem",
-  },
-  chartContainer: {
-    height: "320px",
-  },
-  dealsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
-    gap: "1.5rem",
-  },
-  dealCard: {
-    backgroundColor: "#ecfeff",
-    borderRadius: "0.5rem",
-    border: "1px solid #d1d5db",
-    padding: "1.5rem",
-  },
-  dealHeader: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: "1rem",
-  },
-  dealCompany: {
-    fontWeight: "600",
-    color: "#164e63",
-    margin: 0,
-  },
-  dealSector: {
-    fontSize: "0.875rem",
-    color: "#374151",
-    margin: "0.25rem 0 0 0",
-  },
-  stageBadge: {
-    padding: "0.25rem 0.75rem",
-    borderRadius: "9999px",
-    fontSize: "0.75rem",
-    fontWeight: "500",
-  },
-  dealMetrics: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "1rem",
-  },
-  metricLabel: {
-    fontSize: "0.75rem",
-    color: "#374151",
-    margin: 0,
-  },
-  metricValue: {
-    fontWeight: "600",
-    color: "#164e63",
-    margin: 0,
-  },
-  pipelineMetric: {
-    textAlign: "center" as const,
-  },
-  pipelineValue: {
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-    color: "#164e63",
-    margin: 0,
-  },
-  pipelineTitle: {
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    color: "#374151",
-    margin: 0,
-  },
-  pipelineSubtitle: {
-    fontSize: "0.75rem",
-    color: "#374151",
-    margin: 0,
-  },
-  activityItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1rem",
-    padding: "0.75rem 0",
-    borderBottom: "1px solid #d1d5db",
-  },
-  activityDot: {
-    width: "0.5rem",
-    height: "0.5rem",
-    borderRadius: "50%",
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityText: {
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    color: "#164e63",
-    margin: 0,
-  },
-  activityTime: {
-    fontSize: "0.75rem",
-    color: "#374151",
-    margin: 0,
-  },
+interface DealsTabProps {
+  refreshKey?: number
 }
 
-function DealCard({
-  company,
-  sector,
-  stage,
-  dealSize,
-  probability,
-  expectedClose,
-}: {
-  company: string
-  sector: string
-  stage: string
-  dealSize: string
-  probability: number
-  expectedClose: string
-}) {
-  const getStageStyle = () => {
-    switch (stage) {
-      case "Closing":
-        return { backgroundColor: "#166534", color: "#ffffff" }
-      case "Final Review":
-        return { backgroundColor: "#166534", color: "#ffffff" }
-      case "Due Diligence":
-        return { backgroundColor: "#164e63", color: "#ffffff" }
-      default:
-        return { backgroundColor: "#f0fdf4", color: "#374151" }
+export default function DealsTab({ refreshKey = 0 }: DealsTabProps) {
+  const [deals, setDeals] = useState<Deal[]>([])
+  const [dealKPIs, setDealKPIs] = useState<Map<number, DealKPIs>>(new Map())
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const dealsData = await api.getDeals()
+        setDeals(dealsData)
+
+        // Fetch KPIs for each deal
+        const kpisMap = new Map<number, DealKPIs>()
+        await Promise.all(
+          dealsData.map(async (deal) => {
+            try {
+              const kpis = await api.getDealKPIs(deal.id)
+              kpisMap.set(deal.id, kpis)
+            } catch (error) {
+              console.error(`Failed to fetch KPIs for deal ${deal.id}:`, error)
+            }
+          })
+        )
+        setDealKPIs(kpisMap)
+      } catch (error) {
+        console.error("Failed to fetch deals:", error)
+      } finally {
+        setLoading(false)
+      }
     }
+
+    fetchData()
+  }, [refreshKey])
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(2)}M`
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`
+    }
+    return `$${value.toFixed(2)}`
   }
 
-  const getProbabilityColor = () => {
-    if (probability >= 80) return "#166534"
-    if (probability >= 60) return "#166534"
-    if (probability >= 40) return "#164e63"
-    return "#374151"
+  const formatPercent = (value: number | null) => {
+    if (value === null || value === undefined) return "N/A"
+    return `${(value * 100).toFixed(2)}%`
   }
 
-  return (
-    <div style={styles.dealCard}>
-      <div style={styles.dealHeader}>
-        <div>
-          <h4 style={styles.dealCompany}>{company}</h4>
-          <p style={styles.dealSector}>{sector}</p>
-        </div>
-        <span style={{ ...styles.stageBadge, ...getStageStyle() }}>{stage}</span>
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: "1.5rem",
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "1rem",
+    },
+    title: {
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+      color: "#00ff9d",
+      margin: 0,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+    },
+    dealsGrid: {
+      display: "grid",
+      gap: "1.5rem",
+    },
+    dealCard: {
+      backgroundColor: "#0f0f0f",
+      borderRadius: "0.75rem",
+      border: "1px solid #1a1a1a",
+      padding: "1.5rem",
+      transition: "all 0.3s",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+    },
+    dealCardHover: {
+      borderColor: "#00ff9d",
+      boxShadow: "0 0 20px rgba(0, 255, 157, 0.2)",
+    },
+    dealHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "start",
+      marginBottom: "1.5rem",
+    },
+    companyInfo: {
+      flex: 1,
+    },
+    companyName: {
+      fontSize: "1.25rem",
+      fontWeight: "bold",
+      color: "#fff",
+      margin: 0,
+    },
+    ticker: {
+      fontSize: "0.875rem",
+      color: "#00ff9d",
+      margin: "0.25rem 0 0 0",
+      fontWeight: "600",
+    },
+    sector: {
+      fontSize: "0.75rem",
+      color: "#888",
+      margin: "0.25rem 0 0 0",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+    },
+    statusBadge: {
+      padding: "0.5rem 1rem",
+      borderRadius: "0.5rem",
+      fontSize: "0.75rem",
+      fontWeight: "600",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+    },
+    metricsGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+      gap: "1.5rem",
+      marginTop: "1.5rem",
+      paddingTop: "1.5rem",
+      borderTop: "1px solid #1a1a1a",
+    },
+    metric: {
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: "0.25rem",
+    },
+    metricLabel: {
+      fontSize: "0.75rem",
+      color: "#888",
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+    },
+    metricValue: {
+      fontSize: "1.25rem",
+      fontWeight: "bold",
+      color: "#fff",
+    },
+    loadingContainer: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "400px",
+      color: "#00ff9d",
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+    },
+    noDataContainer: {
+      textAlign: "center" as const,
+      padding: "3rem",
+      color: "#888",
+    },
+    noDataTitle: {
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+      color: "#00ff9d",
+      marginBottom: "1rem",
+    },
+    noDataText: {
+      fontSize: "1rem",
+      marginBottom: "2rem",
+    },
+  }
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        ⏳ Loading Deals...
       </div>
+    )
+  }
 
-      <div style={styles.dealMetrics}>
-        <div>
-          <p style={styles.metricLabel}>Deal Size</p>
-          <p style={styles.metricValue}>{dealSize}</p>
-        </div>
-        <div>
-          <p style={styles.metricLabel}>Probability</p>
-          <p style={{ ...styles.metricValue, color: getProbabilityColor() }}>{probability}%</p>
-        </div>
-        <div>
-          <p style={styles.metricLabel}>Expected Close</p>
-          <p style={styles.metricValue}>{expectedClose}</p>
-        </div>
+  if (deals.length === 0) {
+    return (
+      <div style={styles.noDataContainer}>
+        <h2 style={styles.noDataTitle}>💼 NO DEALS FOUND</h2>
+        <p style={styles.noDataText}>
+          Click "Load Portfolio Data" above to ingest sample deals with real market data.
+        </p>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
-function PipelineMetric({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string
-  value: string
-  subtitle: string
-}) {
-  return (
-    <div style={styles.pipelineMetric}>
-      <p style={styles.pipelineValue}>{value}</p>
-      <p style={styles.pipelineTitle}>{title}</p>
-      <p style={styles.pipelineSubtitle}>{subtitle}</p>
-    </div>
-  )
-}
-
-export default function DealsTab() {
   return (
     <div style={styles.container}>
-      {/* Pipeline Overview */}
-      <div style={styles.card}>
-        <h3 style={styles.cardTitle}>Deal Pipeline Overview</h3>
-        <div style={styles.metricsGrid}>
-          <PipelineMetric title="Total Deals" value="77" subtitle="Active opportunities" />
-          <PipelineMetric title="Pipeline Value" value="$5.2B" subtitle="Total deal value" />
-          <PipelineMetric title="Avg Deal Size" value="$67M" subtitle="Mean transaction" />
-          <PipelineMetric title="Close Rate" value="23%" subtitle="Historical average" />
-          <PipelineMetric title="Time to Close" value="4.2mo" subtitle="Average duration" />
-        </div>
-
-        <div style={styles.chartContainer}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dealPipelineData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
-              <XAxis dataKey="stage" stroke="#475569" />
-              <YAxis stroke="#475569" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "8px",
-                }}
-              />
-              <Bar dataKey="count" fill="#164e63" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div style={styles.header}>
+        <h2 style={styles.title}>📊 Active Deals ({deals.length})</h2>
       </div>
 
-      {/* Active Deals */}
-      <div>
-        <h3 style={styles.cardTitle}>Active Deals</h3>
-        <div style={styles.dealsGrid}>
-          {recentDeals.map((deal, index) => (
-            <DealCard key={index} {...deal} />
-          ))}
-        </div>
-      </div>
+      <div style={styles.dealsGrid}>
+        {deals.map((deal) => {
+          const kpis = dealKPIs.get(deal.id)
+          const [isHovered, setIsHovered] = useState(false)
 
-      {/* Deal Activity */}
-      <div style={styles.card}>
-        <h3 style={styles.cardTitle}>Recent Activity</h3>
-        <div>
-          <div style={styles.activityItem}>
-            <div style={{ ...styles.activityDot, backgroundColor: "#166534" }}></div>
-            <div style={styles.activityContent}>
-              <p style={styles.activityText}>Due diligence completed for DataFlow Analytics</p>
-              <p style={styles.activityTime}>2 hours ago</p>
+          const returnPct = kpis
+            ? ((kpis.current_value - kpis.invest_amount) / kpis.invest_amount) * 100
+            : 0
+
+          return (
+            <div
+              key={deal.id}
+              style={{
+                ...styles.dealCard,
+                ...(isHovered ? styles.dealCardHover : {}),
+              }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <div style={styles.dealHeader}>
+                <div style={styles.companyInfo}>
+                  <h3 style={styles.companyName}>{deal.company?.name || "Unknown Company"}</h3>
+                  <p style={styles.ticker}>{deal.company?.ticker}</p>
+                  <p style={styles.sector}>{deal.company?.sector}</p>
+                </div>
+                <div
+                  style={{
+                    ...styles.statusBadge,
+                    backgroundColor: deal.status === "active" ? "rgba(0, 255, 157, 0.1)" : "rgba(255, 68, 68, 0.1)",
+                    border: `1px solid ${deal.status === "active" ? "#00ff9d" : "#ff4444"}`,
+                    color: deal.status === "active" ? "#00ff9d" : "#ff4444",
+                  }}
+                >
+                  {deal.status}
+                </div>
+              </div>
+
+              {kpis && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "1rem", backgroundColor: "#1a1a1a", borderRadius: "0.5rem" }}>
+                    <div>
+                      <p style={{ fontSize: "0.75rem", color: "#888", margin: 0 }}>INVESTED</p>
+                      <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: "0.25rem 0 0 0" }}>
+                        {formatCurrency(kpis.invest_amount)}
+                      </p>
+                      <p style={{ fontSize: "0.75rem", color: "#888", margin: "0.25rem 0 0 0" }}>
+                        {new Date(kpis.invest_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: "0.75rem", color: "#888", margin: 0 }}>CURRENT VALUE</p>
+                      <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: "0.25rem 0 0 0" }}>
+                        {formatCurrency(kpis.current_value)}
+                      </p>
+                      <p style={{ fontSize: "0.875rem", fontWeight: "600", color: returnPct >= 0 ? "#00ff9d" : "#ff4444", margin: "0.25rem 0 0 0" }}>
+                        {returnPct >= 0 ? "+" : ""}{returnPct.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={styles.metricsGrid}>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>Shares</span>
+                      <span style={styles.metricValue}>{kpis.shares.toFixed(2)}</span>
+                    </div>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>Current Price</span>
+                      <span style={styles.metricValue}>${kpis.current_price.toFixed(2)}</span>
+                    </div>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>IRR</span>
+                      <span style={{
+                        ...styles.metricValue,
+                        color: (kpis.irr || 0) >= 0 ? "#00ff9d" : "#ff4444"
+                      }}>
+                        {formatPercent(kpis.irr)}
+                      </span>
+                    </div>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>MOIC</span>
+                      <span style={styles.metricValue}>
+                        {kpis.moic?.toFixed(2)}x
+                      </span>
+                    </div>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>Distributions</span>
+                      <span style={styles.metricValue}>
+                        {formatCurrency(kpis.total_distributions)}
+                      </span>
+                    </div>
+                    <div style={styles.metric}>
+                      <span style={styles.metricLabel}>Unrealized Gain</span>
+                      <span style={{
+                        ...styles.metricValue,
+                        color: kpis.unrealized_gain >= 0 ? "#00ff9d" : "#ff4444"
+                      }}>
+                        {formatCurrency(kpis.unrealized_gain)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-          <div style={styles.activityItem}>
-            <div style={{ ...styles.activityDot, backgroundColor: "#164e63" }}></div>
-            <div style={styles.activityContent}>
-              <p style={styles.activityText}>New deal sourced: CloudTech Innovations</p>
-              <p style={styles.activityTime}>5 hours ago</p>
-            </div>
-          </div>
-          <div style={styles.activityItem}>
-            <div style={{ ...styles.activityDot, backgroundColor: "#166534" }}></div>
-            <div style={styles.activityContent}>
-              <p style={styles.activityText}>Term sheet signed with MedDevice Pro</p>
-              <p style={styles.activityTime}>1 day ago</p>
-            </div>
-          </div>
-          <div style={styles.activityItem}>
-            <div style={{ ...styles.activityDot, backgroundColor: "#374151" }}></div>
-            <div style={styles.activityContent}>
-              <p style={styles.activityText}>Initial review scheduled for RetailTech Solutions</p>
-              <p style={styles.activityTime}>2 days ago</p>
-            </div>
-          </div>
-        </div>
+          )
+        })}
       </div>
     </div>
   )

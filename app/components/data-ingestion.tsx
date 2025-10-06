@@ -62,29 +62,32 @@ export default function DataIngestion({ onDataIngested }: DataIngestionProps) {
 
   return (
     <div style={{
-      backgroundColor: "#ecfeff",
-      borderRadius: "0.5rem",
-      border: "1px solid #d1d5db",
+      backgroundColor: "#0f0f0f",
+      borderRadius: "0.75rem",
+      border: "1px solid #00ff9d",
       padding: "1.5rem",
-      marginBottom: "1.5rem"
+      marginBottom: "1.5rem",
+      boxShadow: "0 0 20px rgba(0, 255, 157, 0.1)"
     }}>
       <h3 style={{
         fontSize: "1.125rem",
         fontWeight: "600",
-        color: "#164e63",
+        color: "#00ff9d",
         marginBottom: "1rem",
-        margin: 0
+        margin: 0,
+        textTransform: "uppercase",
+        letterSpacing: "0.05em"
       }}>
-        Data Ingestion
+        📊 Data Ingestion
       </h3>
-      
+
       <p style={{
         fontSize: "0.875rem",
-        color: "#374151",
+        color: "#888",
         marginBottom: "1.5rem",
         margin: 0
       }}>
-        Ingest sample portfolio data to populate the dashboard with real Alpha Vantage market data.
+        Load real stock market data from Alpha Vantage API with live pricing and dividend tracking.
       </p>
 
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
@@ -93,29 +96,44 @@ export default function DataIngestion({ onDataIngested }: DataIngestionProps) {
           disabled={isLoading}
           style={{
             padding: "0.75rem 1.5rem",
-            backgroundColor: isLoading ? "#9ca3af" : "#164e63",
-            color: "white",
+            backgroundColor: isLoading ? "#333" : "#00ff9d",
+            color: isLoading ? "#666" : "#0a0a0a",
             border: "none",
-            borderRadius: "0.375rem",
+            borderRadius: "0.5rem",
             cursor: isLoading ? "not-allowed" : "pointer",
             fontSize: "0.875rem",
-            fontWeight: "500"
+            fontWeight: "600",
+            transition: "all 0.2s",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em"
+          }}
+          onMouseEnter={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.backgroundColor = "#00cc7d"
+              e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 157, 0.4)"
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.backgroundColor = "#00ff9d"
+              e.currentTarget.style.boxShadow = "none"
+            }
           }}
         >
-          {isLoading ? "Processing..." : "Ingest Sample Data"}
+          {isLoading ? "⏳ Processing..." : "🚀 Load Portfolio Data"}
         </button>
       </div>
 
       {result && (
         <div style={{
           padding: "0.75rem",
-          backgroundColor: "#d1fae5",
-          border: "1px solid #10b981",
-          borderRadius: "0.375rem",
+          backgroundColor: "rgba(0, 255, 157, 0.1)",
+          border: "1px solid #00ff9d",
+          borderRadius: "0.5rem",
           marginBottom: "1rem"
         }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "#065f46" }}>
-            {result}
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#00ff9d" }}>
+            ✅ {result}
           </p>
         </div>
       )}
@@ -123,32 +141,35 @@ export default function DataIngestion({ onDataIngested }: DataIngestionProps) {
       {error && (
         <div style={{
           padding: "0.75rem",
-          backgroundColor: "#fee2e2",
-          border: "1px solid #ef4444",
-          borderRadius: "0.375rem",
+          backgroundColor: "rgba(255, 0, 0, 0.1)",
+          border: "1px solid #ff4444",
+          borderRadius: "0.5rem",
           marginBottom: "1rem"
         }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "#991b1b" }}>
-            {error}
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#ff4444" }}>
+            ❌ {error}
           </p>
         </div>
       )}
 
       <div style={{
         fontSize: "0.75rem",
-        color: "#6b7280",
-        marginTop: "1rem"
+        color: "#666",
+        marginTop: "1rem",
+        padding: "1rem",
+        backgroundColor: "#1a1a1a",
+        borderRadius: "0.5rem"
       }}>
-        <p style={{ margin: 0, marginBottom: "0.5rem" }}>
-          <strong>Sample Data Includes:</strong>
+        <p style={{ margin: 0, marginBottom: "0.5rem", color: "#00ff9d", fontWeight: "600" }}>
+          SAMPLE PORTFOLIO:
         </p>
         <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-          <li>Microsoft Corp (MSFT) - $1M invested on 2018-01-02</li>
-          <li>Johnson & Johnson (JNJ) - $750K invested on 2019-03-01</li>
-          <li>JPMorgan Chase (JPM) - $500K invested on 2020-06-15</li>
+          <li>Microsoft Corp (MSFT) - $1M @ 2018-01-02</li>
+          <li>Johnson & Johnson (JNJ) - $750K @ 2019-03-01</li>
+          <li>JPMorgan Chase (JPM) - $500K @ 2020-06-15</li>
         </ul>
-        <p style={{ margin: "0.5rem 0 0 0" }}>
-          <strong>Note:</strong> You need a valid Alpha Vantage API key in the backend .env file.
+        <p style={{ margin: "0.5rem 0 0 0", color: "#888" }}>
+          🔑 Real-time pricing, dividends, and IRR calculations powered by Alpha Vantage API
         </p>
       </div>
     </div>

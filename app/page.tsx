@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import PortfolioTab from "./tabs/portfolio-tab"
 import DealsTab from "./tabs/deals-tab"
 import PerformanceTab from "./tabs/performance-tab"
 import AnalyticsTab from "./tabs/analytics-tab"
 import ReportsTab from "./tabs/reports-tab"
 import DataIngestion from "./components/data-ingestion"
+import { api, PortfolioKPIs } from "./lib/api"
 
 const tabs = [
   { id: "portfolio", label: "Portfolio Overview", component: PortfolioTab },
@@ -18,19 +19,50 @@ const tabs = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("portfolio")
+  const [portfolioData, setPortfolioData] = useState<PortfolioKPIs | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      try {
+        setLoading(true)
+        const data = await api.getPortfolioKPIs()
+        setPortfolioData(data)
+      } catch (error) {
+        console.error("Failed to fetch portfolio data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPortfolioData()
+  }, [refreshKey])
+
+  const handleDataIngested = () => {
+    setRefreshKey(prev => prev + 1)
+  }
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`
+    }
+    return `$${(value / 1000).toFixed(0)}K`
+  }
 
   const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || PortfolioTab
 
   const styles = {
     container: {
       minHeight: "100vh",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#0a0a0a",
       fontFamily: "system-ui, -apple-system, sans-serif",
     },
     header: {
-      borderBottom: "1px solid #d1d5db",
-      backgroundColor: "#ecfeff",
-      padding: "1rem 1.5rem",
+      borderBottom: "1px solid #1a1a1a",
+      backgroundColor: "#0f0f0f",
+      padding: "1.5rem 2rem",
+      boxShadow: "0 4px 6px -1px rgba(0, 255, 157, 0.1)",
     },
     headerContent: {
       display: "flex",
@@ -38,59 +70,66 @@ export default function Dashboard() {
       justifyContent: "space-between",
     },
     title: {
-      fontSize: "1.5rem",
+      fontSize: "1.75rem",
       fontWeight: "bold",
-      color: "#164e63",
+      color: "#00ff9d",
       margin: 0,
+      textShadow: "0 0 20px rgba(0, 255, 157, 0.3)",
     },
     subtitle: {
       fontSize: "0.875rem",
-      color: "#374151",
+      color: "#888",
       margin: "0.25rem 0 0 0",
     },
     headerRight: {
       display: "flex",
       alignItems: "center",
-      gap: "1rem",
+      gap: "1.5rem",
     },
     aumContainer: {
       textAlign: "right" as const,
+      padding: "0.75rem 1.5rem",
+      backgroundColor: "#1a1a1a",
+      borderRadius: "0.5rem",
+      border: "1px solid #00ff9d",
     },
     aumLabel: {
-      fontSize: "0.875rem",
+      fontSize: "0.75rem",
       fontWeight: "500",
-      color: "#164e63",
+      color: "#00ff9d",
       margin: 0,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
     },
     aumValue: {
-      fontSize: "1.125rem",
+      fontSize: "1.5rem",
       fontWeight: "bold",
-      color: "#164e63",
-      margin: 0,
+      color: "#fff",
+      margin: "0.25rem 0 0 0",
     },
     avatar: {
-      height: "2rem",
-      width: "2rem",
+      height: "2.5rem",
+      width: "2.5rem",
       borderRadius: "50%",
-      backgroundColor: "#164e63",
+      backgroundColor: "#00ff9d",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#ffffff",
-      fontSize: "0.75rem",
-      fontWeight: "500",
+      color: "#0a0a0a",
+      fontSize: "0.875rem",
+      fontWeight: "bold",
     },
     nav: {
-      borderBottom: "1px solid #d1d5db",
-      backgroundColor: "#ecfeff",
-      padding: "0 1.5rem",
+      borderBottom: "1px solid #1a1a1a",
+      backgroundColor: "#0f0f0f",
+      padding: "0 2rem",
     },
     navTabs: {
       display: "flex",
       gap: "2rem",
     },
     tab: {
-      padding: "1rem 0.25rem",
+      padding: "1rem 0.5rem",
       borderBottom: "2px solid transparent",
       fontWeight: "500",
       fontSize: "0.875rem",
@@ -100,14 +139,15 @@ export default function Dashboard() {
       transition: "all 0.2s",
     },
     activeTab: {
-      borderBottomColor: "#164e63",
-      color: "#164e63",
+      borderBottomColor: "#00ff9d",
+      color: "#00ff9d",
     },
     inactiveTab: {
-      color: "#374151",
+      color: "#888",
     },
     main: {
-      padding: "1.5rem",
+      padding: "2rem",
+      backgroundColor: "#0a0a0a",
     },
   }
 
@@ -117,16 +157,18 @@ export default function Dashboard() {
       <header style={styles.header}>
         <div style={styles.headerContent}>
           <div>
-            <h1 style={styles.title}>Private Equity Dashboard</h1>
-            <p style={styles.subtitle}>Fund Management & Investment Analytics</p>
+            <h1 style={styles.title}>PRIVATE EQUITY DASHBOARD</h1>
+            <p style={styles.subtitle}>Real-Time Investment Analytics & Performance Tracking</p>
           </div>
           <div style={styles.headerRight}>
             <div style={styles.aumContainer}>
-              <p style={styles.aumLabel}>Total AUM</p>
-              <p style={styles.aumValue}>$2.4B</p>
+              <p style={styles.aumLabel}>Total Portfolio Value</p>
+              <p style={styles.aumValue}>
+                {loading ? "Loading..." : portfolioData ? formatCurrency(portfolioData.total_current_value) : "$0"}
+              </p>
             </div>
             <div style={styles.avatar}>
-              <span>JD</span>
+              <span>CV</span>
             </div>
           </div>
         </div>
@@ -145,12 +187,12 @@ export default function Dashboard() {
               }}
               onMouseEnter={(e) => {
                 if (activeTab !== tab.id) {
-                  e.currentTarget.style.color = "#164e63"
+                  e.currentTarget.style.color = "#00ff9d"
                 }
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== tab.id) {
-                  e.currentTarget.style.color = "#374151"
+                  e.currentTarget.style.color = "#888"
                 }
               }}
             >
@@ -162,8 +204,8 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main style={styles.main}>
-        <DataIngestion onDataIngested={() => window.location.reload()} />
-        <ActiveComponent />
+        <DataIngestion onDataIngested={handleDataIngested} />
+        <ActiveComponent refreshKey={refreshKey} />
       </main>
     </div>
   )

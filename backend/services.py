@@ -127,13 +127,14 @@ class DealService:
         self.db = db
         self.calculator = FinancialCalculator()
     
-    async def create_deal(self, company_id: int, invest_date: date, invest_amount: float, 
-                         shares: float, nav_latest: Optional[float] = None) -> Deal:
+    async def create_deal(self, company_id: int, invest_date: date, invest_amount: float,
+                         shares: float, nav_latest: Optional[float] = None, fund_id: Optional[int] = None) -> Deal:
         """Create a new deal with initial cashflow"""
         try:
             # Create the deal
             deal = Deal(
                 company_id=company_id,
+                fund_id=fund_id,  # Add fund_id support
                 invest_date=invest_date,
                 invest_amount=invest_amount,
                 shares=shares,
@@ -313,16 +314,21 @@ class PortfolioService:
         self.db = db
         self.calculator = FinancialCalculator()
     
-    async def get_portfolio_kpis(self, as_of_date: Optional[date] = None) -> PortfolioKPIs:
-        """Calculate portfolio-level KPIs"""
+    async def get_portfolio_kpis(self, fund_id: Optional[int] = None, as_of_date: Optional[date] = None) -> PortfolioKPIs:
+        """Calculate portfolio-level KPIs, optionally filtered by fund"""
         try:
             if as_of_date is None:
                 as_of_date = date.today()
-            
-            # Get all active deals
-            deals = self.db.query(Deal).join(Company).filter(
+
+            # Get all active deals, optionally filtered by fund
+            query = self.db.query(Deal).join(Company).filter(
                 Deal.status == DealStatus.ACTIVE
-            ).all()
+            )
+
+            if fund_id is not None:
+                query = query.filter(Deal.fund_id == fund_id)
+
+            deals = query.all()
             
             if not deals:
                 return PortfolioKPIs(

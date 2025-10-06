@@ -389,10 +389,18 @@ class FundCRUD:
             self.db.rollback()
             raise e
     
+    def get_all(self, skip: int = 0, limit: int = 100) -> List[Fund]:
+        """Get all funds (public access)"""
+        return self.db.query(Fund).filter(Fund.is_active == True).offset(skip).limit(limit).all()
+
+    def get_by_id_public(self, fund_id: int) -> Optional[Fund]:
+        """Get fund by ID (public access)"""
+        return self.db.query(Fund).filter(Fund.id == fund_id).first()
+
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> List[Fund]:
         """Get funds by user"""
         return self.db.query(Fund).filter(Fund.user_id == user_id).offset(skip).limit(limit).all()
-    
+
     def get_by_id(self, fund_id: int, user_id: int) -> Optional[Fund]:
         """Get fund by ID for specific user"""
         return self.db.query(Fund).filter(

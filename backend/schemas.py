@@ -45,14 +45,16 @@ class DealBase(BaseModel):
 
 class DealCreate(DealBase):
     company_id: int
+    fund_id: Optional[int] = None
 
 class Deal(DealBase):
     id: int
     company_id: int
+    fund_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     company: Optional[Company] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -119,6 +121,9 @@ class Token(BaseModel):
 class FundBase(BaseModel):
     name: str = Field(..., max_length=255)
     description: Optional[str] = None
+    inception_date: Optional[date] = None
+    fund_size: Optional[float] = Field(None, gt=0)
+    currency: str = Field(default="USD", max_length=3)
 
 class FundCreate(FundBase):
     pass
@@ -126,13 +131,17 @@ class FundCreate(FundBase):
 class FundUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
+    inception_date: Optional[date] = None
+    fund_size: Optional[float] = Field(None, gt=0)
+    currency: Optional[str] = Field(None, max_length=3)
+    is_active: Optional[bool] = None
 
 class Fund(FundBase):
     id: int
-    user_id: int
+    is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -158,6 +167,7 @@ class CompanyIngest(BaseModel):
     currency: str = Field(default="USD", max_length=3)
     invest_date: date
     invest_amount: float = Field(..., gt=0)
+    fund_id: Optional[int] = None  # Optional fund assignment
 
 class IngestResult(BaseModel):
     success: bool

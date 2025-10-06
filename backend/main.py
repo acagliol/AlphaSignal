@@ -291,13 +291,14 @@ async def ingest_companies(
                 # Calculate shares
                 shares = company_data.invest_amount / historical_price
                 
-                # Create deal
+                # Create deal (with fund_id if provided)
                 deal = await deal_service.create_deal(
                     company_id=company.id,
                     invest_date=company_data.invest_date,
                     invest_amount=company_data.invest_amount,
                     shares=shares,
-                    nav_latest=historical_price
+                    nav_latest=historical_price,
+                    fund_id=company_data.fund_id  # Pass fund_id from ingestion data
                 )
                 
                 # Get latest price and update NAV
@@ -333,14 +334,57 @@ async def ingest_companies(
     )
 
 # Core Data Access Endpoints
-@app.get("/api/v1/deals", response_model=List[Deal])
-async def get_deals(
+
+# Fund Endpoints
+@app.get("/api/v1/funds", response_model=List[Fund])
+async def get_all_funds(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    """Get all deals"""
+    """Get all funds"""
+    fund_crud = FundCRUD(db)
+    return fund_crud.get_all(skip=skip, limit=limit)
+
+@app.post("/api/v1/funds", response_model=Fund)
+async def create_fund_v1(
+    fund_data: FundCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new fund"""
+    from .models import Fund as FundModel
+    fund = FundModel(**fund_data.dict())
+    db.add(fund)
+    db.commit()
+    db.refresh(fund)
+    return fund
+
+@app.get("/api/v1/funds/{fund_id}", response_model=Fund)
+async def get_fund_by_id(
+    fund_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific fund by ID"""
+    fund_crud = FundCRUD(db)
+    fund = fund_crud.get_by_id_public(fund_id)
+    if not fund:
+        raise HTTPException(status_code=404, detail="Fund not found")
+    return fund
+
+# Deal Endpoints
+@app.get("/api/v1/deals", response_model=List[Deal])
+async def get_deals(
+    fund_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all deals, optionally filtered by fund"""
     deal_crud = DealCRUD(db)
+    if fund_id:
+        from .models import Deal as DealModel
+        deals = db.query(DealModel).filter(DealModel.fund_id == fund_id).offset(skip).limit(limit).all()
+        return deals
     return deal_crud.get_all(skip=skip, limit=limit)
 
 @app.get("/api/v1/deals/{deal_id}/kpis", response_model=DealKPIs)
@@ -361,18 +405,19 @@ async def get_deal_kpis(
 
 @app.get("/api/v1/portfolio/kpis", response_model=PortfolioKPIs)
 async def get_portfolio_kpis(
+    fund_id: Optional[int] = None,
     as_of: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get portfolio-level KPIs"""
+    """Get portfolio-level KPIs, optionally filtered by fund"""
     portfolio_service = PortfolioService(db)
-    
+
     as_of_date = None
     if as_of:
         from datetime import datetime
         as_of_date = datetime.strptime(as_of, "%Y-%m-%d").date()
-    
-    return await portfolio_service.get_portfolio_kpis(as_of_date)
+
+    return await portfolio_service.get_portfolio_kpis(fund_id=fund_id, as_of_date=as_of_date)
 
 @app.get("/api/v1/analytics/sectors", response_model=List[SectorAnalytics])
 async def get_sector_analytics(

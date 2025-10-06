@@ -36,9 +36,10 @@ class Company(Base):
 
 class Deal(Base):
     __tablename__ = "deals"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    fund_id = Column(Integer, ForeignKey("funds.id"), nullable=True)  # Nullable for backward compatibility
     invest_date = Column(Date, nullable=False)
     invest_amount = Column(Float, nullable=False)
     shares = Column(Float, nullable=False)
@@ -46,9 +47,10 @@ class Deal(Base):
     status = Column(Enum(DealStatus), nullable=False, default=DealStatus.ACTIVE)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
     company = relationship("Company", back_populates="deals")
+    fund = relationship("Fund", back_populates="deals")
     cashflows = relationship("CashFlow", back_populates="deal")
 
 class CashFlow(Base):
@@ -94,13 +96,16 @@ class User(Base):
 
 class Fund(Base):
     __tablename__ = "funds"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    inception_date = Column(Date, nullable=True)
+    fund_size = Column(Float, nullable=True)
+    currency = Column(String(3), nullable=False, default="USD")
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
-    user = relationship("User")
+    deals = relationship("Deal", back_populates="fund")

@@ -27,7 +27,8 @@ from .schemas import (
 from .auth import authenticate_user, create_access_token, get_current_user
 from .services import DealService, PortfolioService, FinancialCalculator
 from .crud import CompanyCRUD, DealCRUD, CashFlowCRUD, MarketDataCRUD, UserCRUD, FundCRUD
-from .alpha_service import AlphaVantageService
+# from .alpha_service import AlphaVantageService  # Commented out - using yfinance
+from .yfinance_service import YFinanceService
 
 # Load environment variables
 load_dotenv()
@@ -256,7 +257,7 @@ async def ingest_companies(
     failed = 0
     errors = []
     
-    async with AlphaVantageService() as alpha_service:
+    async with YFinanceService() as alpha_service:
         for company_data in companies:
             try:
                 # Validate ticker with Alpha Vantage
@@ -401,7 +402,7 @@ async def refresh_market_data(
     updated_tickers = []
     errors = []
     
-    async with AlphaVantageService() as alpha_service:
+    async with YFinanceService() as alpha_service:
         for ticker in tickers:
             try:
                 # Get latest price
@@ -446,7 +447,7 @@ async def refresh_deal(
         raise HTTPException(status_code=404, detail="Deal not found")
     
     try:
-        async with AlphaVantageService() as alpha_service:
+        async with YFinanceService() as alpha_service:
             # Get latest price
             latest_price = await alpha_service.get_latest_price(deal.company.ticker)
             if latest_price:

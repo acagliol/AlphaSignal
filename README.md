@@ -1,6 +1,6 @@
 # 🚀 Cagliolo Ventures - Private Equity Dashboard
 
-> A production-ready Private Equity investment tracking platform with real-time market data, advanced financial calculations, and institutional-grade performance analytics.
+> A production-ready Private Equity investment tracking platform with real-time market data, advanced financial calculations, multi-fund management, and institutional-grade performance analytics.
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green)](https://fastapi.tiangolo.com/)
@@ -40,10 +40,12 @@ This project demonstrates **full-stack development**, **financial mathematics**,
 ## ✨ Features
 
 ### 💼 Investment Management
+- **Multi-Fund Support**: Manage multiple investment funds with separate tracking and reporting
 - **Real-time Market Data**: Live stock prices via Alpha Vantage & Yahoo Finance APIs
 - **Portfolio Tracking**: Monitor multiple deals across sectors (Technology, Healthcare, Financials, etc.)
 - **Deal Pipeline**: Track active investments, entry dates, share counts, and current valuations
 - **Sector Analytics**: Industry-wise performance breakdown and allocation
+- **Fund-Level Analytics**: Individual fund performance metrics and comparisons
 
 ### 📊 Financial Calculations
 - **IRR/XIRR**: Calculate Internal Rate of Return with irregular cashflows
@@ -116,6 +118,15 @@ This project demonstrates **full-stack development**, **financial mathematics**,
 ### Database Schema
 
 ```sql
+Funds
+├── id (PK)
+├── name
+├── description
+├── fund_size
+├── vintage_year
+├── status (ACTIVE/CLOSED)
+└── created_at
+
 Companies
 ├── id (PK)
 ├── name
@@ -123,9 +134,10 @@ Companies
 ├── sector
 └── currency
 
-Deals (Many-to-One with Companies)
+Deals (Many-to-One with Companies & Funds)
 ├── id (PK)
 ├── company_id (FK)
+├── fund_id (FK) -- NEW: Multi-fund support
 ├── invest_date
 ├── invest_amount
 ├── shares
@@ -251,14 +263,27 @@ npm run dev
 
 Frontend runs on: **http://localhost:3000**
 
-### 5. Load Sample Data
+### 5. Create Funds & Load Sample Data
 
 1. Open **http://localhost:3000**
-2. Click **"Load Portfolio Data"** button
-3. Sample deals are created:
-   - Microsoft (MSFT) - $1M invested 2018
-   - Johnson & Johnson (JNJ) - $750K invested 2019
-   - JPMorgan Chase (JPM) - $500K invested 2020
+2. Create investment funds via API or use the sample data loader
+3. Click **"Load Portfolio Data"** button to ingest sample companies:
+   - Microsoft (MSFT) - $1M invested 2018 → Fund I
+   - Johnson & Johnson (JNJ) - $750K invested 2019 → Fund I  
+   - JPMorgan Chase (JPM) - $500K invested 2020 → Fund II
+
+**Sample Fund Creation:**
+```bash
+# Create Fund I
+curl -X POST http://localhost:8000/api/v1/funds \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Cagliolo Ventures Fund I", "description": "Main fund", "fund_size": 100000000, "vintage_year": 2018}'
+
+# Create Fund II  
+curl -X POST http://localhost:8000/api/v1/funds \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Cagliolo Ventures Fund II", "description": "Growth fund", "fund_size": 50000000, "vintage_year": 2020}'
+```
 
 ### 6. (Optional) Install C++ Optimization
 
@@ -277,6 +302,87 @@ python3 benchmark.py
 ```
 
 See [`C++_OPTIMIZATION_GUIDE.md`](C++_OPTIMIZATION_GUIDE.md) for details.
+
+---
+
+## 🏦 Multi-Fund Management
+
+### Fund Architecture
+
+The dashboard now supports **multiple investment funds** with complete data isolation and separate reporting:
+
+- **Fund Creation**: Create unlimited funds with custom names, descriptions, and vintage years
+- **Deal Assignment**: Assign deals to specific funds during ingestion
+- **Fund-Level Analytics**: Individual fund performance metrics and comparisons
+- **Portfolio Filtering**: View portfolio data by fund or across all funds
+- **Separate Reporting**: Generate fund-specific reports and exports
+
+### Fund Management API
+
+```bash
+# Create a new fund
+curl -X POST http://localhost:8000/api/v1/funds \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Cagliolo Ventures Fund I",
+    "description": "Main investment fund",
+    "fund_size": 100000000,
+    "vintage_year": 2018
+  }'
+
+# Get all funds
+curl http://localhost:8000/api/v1/funds
+
+# Get portfolio KPIs for specific fund
+curl "http://localhost:8000/api/v1/portfolio/kpis?fund_id=1"
+```
+
+### Sample Multi-Fund Setup
+
+```json
+// Fund I - Main Fund
+{
+  "name": "Cagliolo Ventures Fund I",
+  "description": "Main investment fund",
+  "fund_size": 100000000,
+  "vintage_year": 2018
+}
+
+// Fund II - Growth Fund  
+{
+  "name": "Cagliolo Ventures Fund II", 
+  "description": "Growth stage investments",
+  "fund_size": 50000000,
+  "vintage_year": 2020
+}
+```
+
+### Deal Assignment
+
+When ingesting companies, you can assign them to specific funds:
+
+```json
+[
+  {
+    "name": "Microsoft Corp",
+    "ticker": "MSFT", 
+    "sector": "Technology",
+    "currency": "USD",
+    "invest_date": "2018-01-02",
+    "invest_amount": 1000000,
+    "fund_id": 1  // Assigns to Fund I
+  },
+  {
+    "name": "JPMorgan Chase",
+    "ticker": "JPM",
+    "sector": "Financials", 
+    "currency": "USD",
+    "invest_date": "2020-06-15",
+    "invest_amount": 500000,
+    "fund_id": 2  // Assigns to Fund II
+  }
+]
+```
 
 ---
 
@@ -397,8 +503,26 @@ RVPI = Current Value / Total Invested
 
 ### Core Endpoints
 
+#### **POST** `/api/v1/funds`
+Create a new investment fund
+
+```json
+POST /api/v1/funds
+Content-Type: application/json
+
+{
+  "name": "Cagliolo Ventures Fund I",
+  "description": "Main investment fund",
+  "fund_size": 100000000,
+  "vintage_year": 2018
+}
+```
+
+#### **GET** `/api/v1/funds`
+Get all funds
+
 #### **POST** `/api/v1/ingest/companies`
-Ingest companies and create deals
+Ingest companies and create deals (with optional fund assignment)
 
 ```json
 POST /api/v1/ingest/companies
@@ -411,23 +535,26 @@ Content-Type: application/json
     "sector": "Technology",
     "currency": "USD",
     "invest_date": "2020-01-15",
-    "invest_amount": 2000000
+    "invest_amount": 2000000,
+    "fund_id": 1
   }
 ]
 ```
 
 #### **GET** `/api/v1/portfolio/kpis`
-Get portfolio-level KPIs
+Get portfolio-level KPIs (optionally filtered by fund)
 
 ```json
+GET /api/v1/portfolio/kpis?fund_id=1
+
 {
-  "total_invested": 2250000,
-  "total_current_value": 8643238.44,
-  "total_distributions": 486301.21,
+  "total_invested": 1750000,
+  "total_current_value": 6843238.44,
+  "total_distributions": 386301.21,
   "portfolio_irr": 0.2344,
   "portfolio_moic": 4.057,
-  "active_deals": 3,
-  "as_of_date": "2025-10-06"
+  "active_deals": 2,
+  "as_of_date": "2025-01-06"
 }
 ```
 
@@ -451,21 +578,25 @@ Refresh market data for tickers
 
 ### 1. Portfolio Overview Tab
 - Total portfolio value with change indicators
+- Multi-fund portfolio breakdown
 - Sector allocation pie chart
 - Top performing deals
 - Portfolio-level metrics (IRR, MOIC, DPI, TVPI, RVPI)
+- Fund-level performance comparison
 
 ### 2. Deal Pipeline Tab (FIXED ✅)
 - All active deals with hover effects
 - Per-deal metrics: IRR, MOIC, shares, current price
 - Investment date, current value, return %
-- Sector badges and status indicators
+- Fund assignment and sector badges
+- Status indicators (ACTIVE/REALIZED)
 
 ### 3. Performance Tab
 - Historical performance charts
 - Benchmark comparisons
 - IRR trends over time
-- Fund-level analytics
+- Multi-fund performance comparison
+- Fund-level analytics and metrics
 
 ### 4. Analytics Tab
 - Sector performance breakdown
@@ -552,6 +683,7 @@ python -m pytest     # Unit tests (if added)
 
 ### Recent Fixes
 
+✅ **Added Multi-Fund Support** - Complete fund management system with separate tracking
 ✅ **Fixed Deal Pipeline Tab** - Removed hooks-in-map React error
 ✅ **Fixed Reports Tab** - Added CSV export functionality
 ✅ **Fixed Performance** - Optimized Next.js config, removed slow analytics
@@ -612,10 +744,11 @@ Building this project taught me:
 2. **Financial Mathematics** - IRR, NPV, PE metrics, Newton-Raphson method
 3. **Performance Optimization** - C++ integration with Python, 37x speedup
 4. **API Design** - RESTful APIs, rate limiting, error handling
-5. **Database Design** - Relational modeling, transactions, migrations
+5. **Database Design** - Relational modeling, transactions, migrations, multi-fund architecture
 6. **Modern DevOps** - Docker-ready, environment configs, logging
 7. **UI/UX Design** - Dark themes, responsive design, data visualization
 8. **Real-World Integration** - External APIs, data validation, caching
+9. **Multi-Tenant Architecture** - Fund-level data isolation and reporting
 
 ---
 

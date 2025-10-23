@@ -47,8 +47,24 @@ interface PredictionData {
   message?: string
 }
 
+// Popular NASDAQ stocks
+const POPULAR_STOCKS = [
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corp.' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
+  { symbol: 'META', name: 'Meta Platforms' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'AMD', name: 'AMD Inc.' },
+  { symbol: 'NFLX', name: 'Netflix Inc.' },
+  { symbol: 'INTC', name: 'Intel Corp.' },
+  { symbol: 'ADBE', name: 'Adobe Inc.' },
+  { symbol: 'AVGO', name: 'Broadcom Inc.' },
+]
+
 export default function AlphaSignalPage() {
-  const [ticker, setTicker] = useState('AAPL')
+  const [ticker, setTicker] = useState('')
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<AnalysisData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -57,8 +73,12 @@ export default function AlphaSignalPage() {
   const [predictionError, setPredictionError] = useState<string | null>(null)
 
   const analyzeStock = async () => {
+    if (!ticker) return
+
     setLoading(true)
     setError(null)
+    setPrediction(null)
+    setPredictionError(null)
 
     try {
       const response = await fetch(`http://localhost:8000/api/v1/demo/analyze/${ticker}`)
@@ -125,34 +145,72 @@ export default function AlphaSignalPage() {
           </p>
         </div>
 
-        {/* Search Bar */}
-        <Card className="bg-gray-800/50 border-gray-700 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white">Analyze Stock</CardTitle>
-            <CardDescription className="text-gray-400">
-              Enter a ticker symbol to view technical analysis and market data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                type="text"
-                placeholder="Enter ticker (e.g., AAPL, TSLA, MSFT)"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                onKeyPress={(e) => e.key === 'Enter' && analyzeStock()}
-                className="bg-gray-900 border-gray-600 text-white placeholder-gray-500"
-              />
-              <Button
-                onClick={analyzeStock}
-                disabled={loading}
-                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
-              >
-                {loading ? 'Analyzing...' : 'Analyze'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Stock Selector */}
+        {!data ? (
+          <Card className="bg-gray-800/50 border-gray-700 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white">Select a Stock to Analyze</CardTitle>
+              <CardDescription className="text-gray-400">
+                Choose from popular NASDAQ stocks or enter a custom ticker
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Popular Stocks Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+                {POPULAR_STOCKS.map((stock) => (
+                  <Button
+                    key={stock.symbol}
+                    onClick={() => {
+                      setTicker(stock.symbol)
+                      analyzeStock()
+                    }}
+                    disabled={loading}
+                    className="h-auto py-4 px-4 bg-gray-900/50 hover:bg-gradient-to-r hover:from-green-500/20 hover:to-blue-600/20 border border-gray-700 hover:border-green-500/50 text-left flex flex-col items-start gap-1 transition-all"
+                    variant="outline"
+                  >
+                    <span className="text-lg font-bold text-white">{stock.symbol}</span>
+                    <span className="text-xs text-gray-500 line-clamp-1">{stock.name}</span>
+                  </Button>
+                ))}
+              </div>
+
+              {/* Custom Ticker Input */}
+              <div className="pt-4 border-t border-gray-700">
+                <p className="text-gray-400 text-sm mb-3">Or enter a custom ticker:</p>
+                <div className="flex gap-3">
+                  <Input
+                    type="text"
+                    placeholder="Enter ticker (e.g., AAPL, TSLA, MSFT)"
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                    onKeyPress={(e) => e.key === 'Enter' && ticker && analyzeStock()}
+                    className="bg-gray-900 border-gray-600 text-white placeholder-gray-500"
+                  />
+                  <Button
+                    onClick={analyzeStock}
+                    disabled={loading || !ticker}
+                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
+                  >
+                    {loading ? 'Analyzing...' : 'Analyze'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Button
+            onClick={() => {
+              setData(null)
+              setPrediction(null)
+              setTicker('')
+              setError(null)
+              setPredictionError(null)
+            }}
+            className="mb-6 bg-gray-700 hover:bg-gray-600"
+          >
+            ← Back to Stock Selector
+          </Button>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -315,7 +373,7 @@ export default function AlphaSignalPage() {
                   ML Price Prediction
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  XGBoost binary classifier with 31 engineered features
+                  5-Day Price Direction Prediction • XGBoost with 70+ engineered features
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -415,8 +473,9 @@ export default function AlphaSignalPage() {
                       {/* Metadata */}
                       <div className="bg-gray-900/30 rounded-lg p-3 text-xs text-gray-500">
                         <p>Prediction Date: {prediction.prediction_date}</p>
-                        <p className="mt-1">Model: XGBoost Binary Classifier (v1)</p>
-                        <p className="mt-1">Features: 31 technical indicators (RSI, MACD, momentum, volatility, volume)</p>
+                        <p className="mt-1">Model: XGBoost 5-Day Classifier (v2)</p>
+                        <p className="mt-1">Horizon: 5-Day Price Direction (more reliable than next-day)</p>
+                        <p className="mt-1">Features: 70+ indicators (RSI, MACD, momentum, volatility, volume, trend-following)</p>
                       </div>
                     </div>
                   )}
@@ -429,7 +488,7 @@ export default function AlphaSignalPage() {
         {/* Footer */}
         <div className="mt-12 text-center text-gray-500 text-sm">
           <p>✨ Powered by AlphaSignal • Phase 1-4 Complete</p>
-          <p className="mt-2">Technical Indicators (C++ 15-20x faster) • ML Predictions (XGBoost 54% accuracy)</p>
+          <p className="mt-2">Technical Indicators (C++ 15-20x faster) • ML Predictions (XGBoost • 56 Features • 3 Years Data)</p>
         </div>
       </div>
     </div>

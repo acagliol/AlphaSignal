@@ -4,8 +4,8 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PE Dashboard',
-  description: 'Private Equity Dashboard - Investment Analytics & Performance Tracking',
+  title: 'AlphaSignal',
+  description: 'AlphaSignal - Quantitative Alpha Research Platform with ML Predictions',
 }
 
 export default function RootLayout({

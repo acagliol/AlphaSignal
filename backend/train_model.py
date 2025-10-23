@@ -25,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def train_alpha_model(ticker: str = 'AAPL', days: int = 365):
+def train_alpha_model(ticker: str = 'AAPL', days: int = 1095):
     """
     Complete ML pipeline: Data -> Features -> Training -> Backtesting
     """
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Train AlphaSignal ML model')
     parser.add_argument('--ticker', type=str, default='AAPL', help='Stock ticker symbol')
-    parser.add_argument('--days', type=int, default=365, help='Historical days to fetch')
+    parser.add_argument('--days', type=int, default=1095, help='Historical days to fetch (default: 3 years)')
 
     args = parser.parse_args()
 

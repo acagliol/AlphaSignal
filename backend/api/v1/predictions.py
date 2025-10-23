@@ -65,6 +65,9 @@ async def make_prediction(
         if price_df.empty:
             raise HTTPException(status_code=404, detail=f"No price data found for {ticker}")
 
+        # Calculate returns (including log_returns needed for model)
+        price_df = market_service.calculate_returns(price_df)
+
         # Get sentiment data (optional)
         sentiment_data = db.query(SentimentData)\
             .filter(SentimentData.ticker == ticker.upper())\
@@ -94,12 +97,12 @@ async def make_prediction(
         prediction_entry = Predictions(
             ticker=ticker.upper(),
             prediction_date=datetime.now().date(),
-            target_date=(datetime.now() + timedelta(days=1)).date(),
+            target_date=(datetime.now() + timedelta(days=5)).date(),  # 5-day prediction
             predicted_direction=prediction_result['prediction'],
             probability_up=prediction_result['probability_up'],
             probability_down=prediction_result['probability_down'],
             confidence=prediction_result['confidence'],
-            model_version="xgboost_v1"
+            model_version="xgboost_v2_5day"
         )
 
         db.add(prediction_entry)

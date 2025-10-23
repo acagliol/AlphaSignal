@@ -78,10 +78,13 @@ class TechnicalIndicators:
         if 'high' in df.columns and 'low' in df.columns:
             df['high_low_ratio'] = df['high'] / df['low']
 
-        # Returns
-        df['returns_1d'] = df['close'].pct_change(1)
-        df['returns_5d'] = df['close'].pct_change(5)
-        df['returns_20d'] = df['close'].pct_change(20)
+        # Returns (only calculate if not already present from MarketDataService)
+        if 'returns_1d' not in df.columns:
+            df['returns_1d'] = df['close'].pct_change(1)
+        if 'returns_5d' not in df.columns:
+            df['returns_5d'] = df['close'].pct_change(5)
+        if 'returns_20d' not in df.columns:
+            df['returns_20d'] = df['close'].pct_change(20)
 
         return df
 

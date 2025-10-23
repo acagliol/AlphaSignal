@@ -86,3 +86,8 @@ backend/*.log
 *.backup
 *.bak
 *~
+
+# Documentation
+RESUME_SECTION.md
+ALPHASIGNAL_ROADMAP.md
+*ROADMAP*.md

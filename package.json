@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "next dev",
-    "dev:backend": "cd backend && source venv/bin/activate && python alphasignal_main.py",
+    "dev:backend": "cd backend && . venv/bin/activate && python alphasignal_main.py",
     "lint": "next lint",
     "start": "next start"
   },
